@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>SaveABite</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-100 min-h-screen">
+    <div class="max-w-3xl mx-auto p-6">
+      <h1 class="text-3xl font-bold mb-4">SaveABite — Hyperlocal Food Rescue</h1>
+
+      <section class="bg-white p-4 rounded shadow mb-4">
+        <h2 class="font-semibold mb-2">Available Listings</h2>
+        <div id="listings" class="space-y-3">Loading…</div>
+      </section>
+
+      <section class="bg-white p-4 rounded shadow">
+        <h2 class="font-semibold mb-2">Create Listing (Donor)</h2>
+        <form id="listingForm" class="space-y-2">
+          <input id="donor_id" class="w-full border p-2 rounded" placeholder="donor_id (int)" />
+          <input id="food_details" class="w-full border p-2 rounded" placeholder="Food details" />
+          <input id="quantity" class="w-full border p-2 rounded" placeholder="Quantity" />
+          <button class="bg-green-600 text-white px-4 py-2 rounded">Create</button>
+        </form>
+      </section>
+
+      <section class="bg-white p-4 rounded shadow mt-4">
+        <h2 class="font-semibold mb-2">Volunteer — Update Location</h2>
+        <form id="locForm" class="space-y-2">
+          <input id="vol_id" class="w-full border p-2 rounded" placeholder="volunteer_id (int)" />
+          <input id="lat" class="w-full border p-2 rounded" placeholder="Latitude (e.g., 23.7809)" />
+          <input id="long" class="w-full border p-2 rounded" placeholder="Longitude (e.g., 90.2792)" />
+          <button class="bg-indigo-600 text-white px-4 py-2 rounded">Update</button>
+        </form>
+      </section>
+    </div>
+
+    <script>
+      const api = '/api'
+
+      async function fetchListings(){
+        const res = await fetch(`${api}/listings/available`)
+        const data = await res.json()
+        const cont = document.getElementById('listings')
+        cont.innerHTML = ''
+        if(!data.length) cont.innerHTML = '<div class="text-gray-500">No listings</div>'
+        data.forEach(l => {
+          const d = document.createElement('div')
+          d.className = 'p-3 border rounded flex justify-between items-center'
+          d.innerHTML = `<div><div class="font-medium">${l.food_details}</div><div class="text-sm text-gray-500">${l.quantity} • ${l.created_at}</div></div><div><button onclick="claim(${l.listing_id})" class="bg-blue-600 text-white px-3 py-1 rounded">Claim</button></div>`
+          cont.appendChild(d)
+        })
+      }
+
+      async function claim(listing_id){
+        const volunteer_id = prompt('Your volunteer_id (int)')
+        if(!volunteer_id) return
+        const res = await fetch(`${api}/deliveries/`, {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({listing_id, volunteer_id})
+        })
+        if(res.ok) alert('Claimed!')
+        else alert('Error: ' + (await res.text()))
+        fetchListings()
+      }
+
+      document.getElementById('listingForm').addEventListener('submit', async (e)=>{
+        e.preventDefault()
+        const donor_id = document.getElementById('donor_id').value
+        const food_details = document.getElementById('food_details').value
+        const quantity = document.getElementById('quantity').value
+        const res = await fetch(`${api}/listings/`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({donor_id, food_details, quantity})})
+        if(res.ok) {alert('Listing created'); fetchListings()} else alert('Failed to create')
+      })
+
+      document.getElementById('locForm').addEventListener('submit', async (e)=>{
+        e.preventDefault()
+        const volunteer_id = document.getElementById('vol_id').value
+        const lat = document.getElementById('lat').value
+        const long = document.getElementById('long').value
+        const res = await fetch(`${api}/volunteers/update_location?volunteer_id=${volunteer_id}&lat=${lat}&long=${long}`, {method:'POST'})
+        if(res.ok) alert('Location updated')
+        else alert('Failed to update')
+      })
+
+      fetchListings()
+    </script>
+  </body>
+</html>
