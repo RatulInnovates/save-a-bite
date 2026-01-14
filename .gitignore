@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+venv/
+.env
+
+# Frontend
+node_modules/
+build/
+.DS_Store
+
+# Database
+*.local.sql
